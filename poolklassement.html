@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poolklassement</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --card-border: #334155;
+      --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+      --accent-dark: #0284c7; --danger: #f87171; --win: #4ade80;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    header { text-align: center; padding: 2rem 1rem 1rem; }
+    header h1 { margin: 0; font-size: 2rem; }
+    header p { color: var(--muted); margin: 0.25rem 0 0; }
+    main { max-width: 900px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+    .card { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 1.25rem; }
+    .card h2 { margin-top: 0; font-size: 1.15rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 1rem; }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.5rem 0.4rem; }
+    thead th { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--card-border); }
+    tbody tr { border-bottom: 1px solid var(--card-border); }
+    tbody tr:last-child { border-bottom: none; }
+    td.rating { font-weight: 700; color: var(--accent); }
+    td.rank { color: var(--muted); width: 2rem; }
+    button { background: var(--accent-dark); color: #fff; border: none; border-radius: 8px; padding: 0.55rem 1rem; font-size: 0.95rem; cursor: pointer; }
+    button:hover { background: var(--accent); color: #082f49; }
+    input[type="text"], select { background: var(--bg); border: 1px solid var(--card-border); color: var(--text); border-radius: 8px; padding: 0.55rem 0.7rem; font-size: 0.95rem; width: 100%; }
+    input[type="text"]:focus, select:focus { outline: 2px solid var(--accent); }
+    form { display: flex; flex-direction: column; gap: 0.75rem; }
+    .match-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .match-row .vs { color: var(--muted); }
+    .match-row label { display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; }
+    .match-row input[type="radio"] { accent-color: var(--accent); }
+    .history { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+    .history li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.55rem 0.2rem; border-bottom: 1px solid var(--card-border); font-size: 0.92rem; }
+    .history li:last-child { border-bottom: none; }
+    .history .delta { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .history .up { color: var(--win); }
+    .history .down { color: var(--danger); }
+    .empty { color: var(--muted); font-style: italic; }
+    .feedback { color: var(--win); font-size: 0.9rem; min-height: 1.2em; margin: 0; }
+    .error { background: #450a0a; border: 1px solid var(--danger); color: #fecaca; border-radius: 8px; padding: 0.6rem 0.9rem; }
+    .delete-btn { background: transparent; color: var(--muted); padding: 0.2rem 0.5rem; font-size: 1rem; }
+    .delete-btn:hover { color: var(--danger); background: transparent; }
+    .reset-btn { background: transparent; border: 1px solid var(--card-border); color: var(--muted); }
+    .reset-btn:hover { color: var(--danger); border-color: var(--danger); background: transparent; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>&#127922; Poolklassement</h1>
+    <p>Elo-rating van het kantoortoernooi (lokaal opgeslagen in je browser)</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Stand</h2>
+      <table id="standings">
+        <thead>
+          <tr><th>#</th><th>Speler</th><th>Rating</th><th>W</th><th>V</th><th>G</th><th></th></tr>
+        </thead>
+        <tbody id="standings-body"></tbody>
+      </table>
+      <p id="standings-empty" class="empty">Nog geen spelers. Voeg hieronder de eerste toe.</p>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Speler toevoegen</h2>
+        <form id="add-player-form">
+          <input type="text" id="player-name" placeholder="Naam" maxlength="50" required>
+          <button type="submit">Toevoegen</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Wedstrijd registreren</h2>
+        <form id="match-form">
+          <div class="match-row">
+            <select id="match-a" required></select>
+            <span class="vs">tegen</span>
+            <select id="match-b" required></select>
+          </div>
+          <div class="match-row">
+            <label><input type="radio" name="result" value="A" required> links wint</label>
+            <label><input type="radio" name="result" value="draw"> gelijkspel</label>
+            <label><input type="radio" name="result" value="B"> rechts wint</label>
+          </div>
+          <button type="submit">Uitslag vastleggen</button>
+        </form>
+        <p id="match-feedback" class="feedback"></p>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Wedstrijdgeschiedenis</h2>
+      <ul id="history" class="history"></ul>
+      <p id="history-empty" class="empty">Nog geen wedstrijden gespeeld.</p>
+    </section>
+
+    <section class="card">
+      <button id="reset-all" class="reset-btn">Alles wissen (spelers + wedstrijden)</button>
+    </section>
+
+    <p id="error" class="error" hidden></p>
+  </main>
+
+  <script>
+    const K_FACTOR = 32;
+    const START_RATING = 1200;
+    const STORAGE_KEY = "poolklassement.v1";
+
+    const standingsBody = document.getElementById("standings-body");
+    const standingsEmpty = document.getElementById("standings-empty");
+    const standingsTable = document.getElementById("standings");
+    const historyList = document.getElementById("history");
+    const historyEmpty = document.getElementById("history-empty");
+    const errorBox = document.getElementById("error");
+    const matchA = document.getElementById("match-a");
+    const matchB = document.getElementById("match-b");
+    const matchFeedback = document.getElementById("match-feedback");
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) { /* beschadigde data negeren */ }
+      return { players: [], matches: [], nextId: 1 };
+    }
+
+    function saveState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function expectedScore(ra, rb) {
+      return 1 / (1 + Math.pow(10, (rb - ra) / 400));
+    }
+
+    function eloUpdate(ra, rb, scoreA) {
+      const scoreB = 1 - scoreA;
+      return [
+        Math.round((ra + K_FACTOR * (scoreA - expectedScore(ra, rb))) * 10) / 10,
+        Math.round((rb + K_FACTOR * (scoreB - expectedScore(rb, ra))) * 10) / 10
+      ];
+    }
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.hidden = false;
+      setTimeout(() => (errorBox.hidden = true), 5000);
+    }
+
+    function fmtDelta(after, before) {
+      const d = after - before;
+      const cls = d > 0 ? "up" : d < 0 ? "down" : "";
+      const sign = d > 0 ? "+" : "";
+      return `<span class="delta ${cls}">${sign}${d.toFixed(1)}</span>`;
+    }
+
+    function render() {
+      const state = loadState();
+      const players = [...state.players].sort((x, y) => y.rating - x.rating || x.name.localeCompare(y.name, "nl"));
+
+      standingsBody.innerHTML = "";
+      standingsEmpty.style.display = players.length ? "none" : "";
+      standingsTable.style.display = players.length ? "" : "none";
+      players.forEach((p, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td class="rank">${i + 1}</td><td></td><td class="rating">${p.rating.toFixed(1)}</td><td>${p.wins}</td><td>${p.losses}</td><td>${p.draws}</td><td></td>`;
+        tr.children[1].textContent = p.name;
+        const del = document.createElement("button");
+        del.className = "delete-btn";
+        del.title = "Speler verwijderen";
+        del.textContent = "✕";
+        del.addEventListener("click", () => deletePlayer(p.id, p.name));
+        tr.lastElementChild.appendChild(del);
+        standingsBody.appendChild(tr);
+      });
+
+      for (const sel of [matchA, matchB]) {
+        const current = sel.value;
+        sel.innerHTML = '<option value="">-- kies speler --</option>';
+        for (const p of state.players) {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = `${p.name} (${p.rating.toFixed(0)})`;
+          sel.appendChild(opt);
+        }
+        sel.value = current;
+      }
+
+      historyList.innerHTML = "";
+      const matches = [...state.matches].slice(-50).reverse();
+      historyEmpty.style.display = matches.length ? "none" : "";
+      for (const m of matches) {
+        const a = state.players.find(p => p.id === m.a);
+        const b = state.players.find(p => p.id === m.b);
+        const li = document.createElement("li");
+        let text;
+        if (m.result === "draw") text = `${a.name} — ${b.name} (gelijkspel)`;
+        else {
+          const winner = m.result === "A" ? a.name : b.name;
+          const loser = m.result === "A" ? b.name : a.name;
+          text = `${winner} wint van ${loser}`;
+        }
+        const deltaA = m.result === "A" ? fmtDelta(m.aAfter, m.aBefore) : "";
+        const deltaB = m.result === "B" ? fmtDelta(m.bAfter, m.bBefore) : "";
+        li.innerHTML = `<span></span><span>${deltaA} ${deltaB}</span>`;
+        li.firstElementChild.textContent = text;
+        historyList.appendChild(li);
+      }
+    }
+
+    document.getElementById("add-player-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = document.getElementById("player-name");
+      const name = input.value.trim();
+      if (!name) return;
+      const state = loadState();
+      if (state.players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+        showError("Deze speler bestaat al");
+        return;
+      }
+      state.players.push({ id: state.nextId++, name, rating: START_RATING, wins: 0, losses: 0, draws: 0 });
+      saveState(state);
+      input.value = "";
+      render();
+    });
+
+    document.getElementById("match-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      matchFeedback.textContent = "";
+      const aId = Number(matchA.value);
+      const bId = Number(matchB.value);
+      const result = new FormData(e.target).get("result");
+      if (aId === bId) { showError("Kies twee verschillende spelers"); return; }
+      const state = loadState();
+      const a = state.players.find(p => p.id === aId);
+      const b = state.players.find(p => p.id === bId);
+      if (!a || !b) { showError("Speler niet gevonden"); return; }
+      const scoreA = result === "A" ? 1 : result === "B" ? 0 : 0.5;
+      const aBefore = a.rating;
+      const bBefore = b.rating;
+      const [aAfter, bAfter] = eloUpdate(aBefore, bBefore, scoreA);
+      a.rating = aAfter;
+      b.rating = bAfter;
+      if (result === "A") { a.wins++; b.losses++; }
+      else if (result === "B") { b.wins++; a.losses++; }
+      else { a.draws++; b.draws++; }
+      state.matches.push({ a: aId, b: bId, result, aBefore, bBefore, aAfter, bAfter });
+      saveState(state);
+      const outcome = result === "draw"
+        ? "Gelijkspel vastgelegd"
+        : (result === "A" ? `${a.name} wint van ${b.name}` : `${b.name} wint van ${a.name}`);
+      matchFeedback.textContent = `${outcome} — rating ${aAfter.toFixed(1)} / ${bAfter.toFixed(1)}`;
+      e.target.reset();
+      render();
+    });
+
+    function deletePlayer(id, name) {
+      const state = loadState();
+      if (state.matches.some(m => m.a === id || m.b === id)) {
+        showError("Speler kan niet verwijderd worden: er zijn al wedstrijden gespeeld");
+        return;
+      }
+      if (!confirm(`Weet je zeker dat je ${name} wilt verwijderen?`)) return;
+      state.players = state.players.filter(p => p.id !== id);
+      saveState(state);
+      render();
+    }
+
+    document.getElementById("reset-all").addEventListener("click", () => {
+      if (!confirm("Weet je zeker dat je ALLE spelers en wedstrijden wilt wissen?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

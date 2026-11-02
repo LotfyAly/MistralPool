@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poolklassement</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>&#127922; Poolklassement</h1>
+    <p>Elo-rating van het kantoortoernooi</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Stand</h2>
+      <table id="standings">
+        <thead>
+          <tr>
+            <th>#</th><th>Speler</th><th>Rating</th><th>W</th><th>V</th><th>G</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="standings-body"></tbody>
+      </table>
+      <p id="standings-empty" class="empty">Nog geen spelers. Voeg hieronder de eerste toe.</p>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Speler toevoegen</h2>
+        <form id="add-player-form">
+          <input type="text" id="player-name" placeholder="Naam" maxlength="50" required>
+          <button type="submit">Toevoegen</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Wedstrijd registreren</h2>
+        <form id="match-form">
+          <div class="match-row">
+            <select id="match-a" required></select>
+            <span class="vs">tegen</span>
+            <select id="match-b" required></select>
+          </div>
+          <div class="match-row">
+            <label><input type="radio" name="result" value="A" required> links wint</label>
+            <label><input type="radio" name="result" value="draw"> gelijkspel</label>
+            <label><input type="radio" name="result" value="B"> rechts wint</label>
+          </div>
+          <button type="submit">Uitslag vastleggen</button>
+        </form>
+        <p id="match-feedback" class="feedback"></p>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Wedstrijdgeschiedenis</h2>
+      <ul id="history" class="history"></ul>
+      <p id="history-empty" class="empty">Nog geen wedstrijden gespeeld.</p>
+    </section>
+
+    <p id="error" class="error" hidden></p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
