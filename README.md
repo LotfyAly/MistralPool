@@ -1,31 +1,38 @@
-# Poolklassement
+# MistralPool — poolklassement als Mistral App
 
-Webapp om het poolklassement tussen collega's bij te houden op basis van Elo-rating.
+Webapp om het poolklassement tussen collega's bij te houden op Elo-basis (K=32, start 1200).
+Gebouwd als [Mistral App](https://docs.mistral.ai/studio/apps/overview): FastAPI-backend + Postgres,
+met een statische web-UI op `/`.
 
-## Starten
-
-### Serverversie (gedeelde stand voor collega's)
+## Lokaal draaien
 
 ```bash
-python3 server.py
+mistral dev
 ```
 
-Open daarna http://127.0.0.1:8000 (poort instelbaar via `PORT`).
+Start Docker eerst (lokale Postgres). Open daarna de geprinte URL.
 
-### Losstaand bestand (werkt zonder server)
+## Deployen naar Mistral (Studio / Mistral Work)
 
-Open `poolklassement.html` direct in een browser (dubbelklik). Data wordt in
-`localStorage` van die browser bewaard.
+```bash
+mistral login
+git push -u origin <branch>
+mistral deploy          # bouwt de gepushte commit
+mistral apps publish    # voegt de app toe aan de catalogus in Vibe/Mistral Work
+```
 
-## Functionaliteit
-
-- Spelers toevoegen (start op 1200 Elo-punten) en verwijderen (alleen als er nog geen wedstrijden zijn)
-- Wedstrijden registreren: winst links, winst rechts of gelijkspel
-- Automatische Elo-berekening (K=32) met live update van de stand
-- Wedstrijdgeschiedenis met ratingwijzigingen per speler
-- Data wordt bewaard in `pool.db` (SQLite)
+De GitHub-repo moet via de [Mistral GitHub App](https://github.com/apps/mistralai) verbonden zijn.
 
 ## Structuur
 
-- `server.py` — backend (Python-standaardbibliotheek, geen externe packages)
-- `static/index.html`, `static/style.css`, `static/app.js` — frontend
+- `apps/api` — FastAPI-module: routers onder `src/api/routers/api/v1`, Elo-logica in `src/api/elo.py`, statische UI in `static/`
+- `packages/py/db` — SQLModel-modellen (`players`, `matches`), accessors en de Alembic-migratie
+- `apps.json` — module/route-definitie; de api serveert `/api` én `/`
+
+## API
+
+- `GET /api/v1/players` — stand (gesorteerd op rating)
+- `POST /api/v1/players` — `{name}`
+- `DELETE /api/v1/players/{id}` — alleen zonder gespeelde wedstrijden
+- `GET /api/v1/matches` — geschiedenis (nieuwste eerst)
+- `POST /api/v1/matches` — `{a, b, result: "A"|"B"|"draw"}`
